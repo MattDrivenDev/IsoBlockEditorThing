@@ -38,6 +38,8 @@ namespace IsoBlockEditor
 
     public struct Tile
     {
+        public bool IsFilled;
+        public bool IsSelected;
         public bool IsHighlighted;
         public (Triangle, Triangle) Bounds;
         public Rectangle Rectangle;
@@ -56,7 +58,9 @@ namespace IsoBlockEditor
         SpriteBatch _spriteBatch;
         Texture2D _tileTexture;
         Tile[,] _map;
-        Matrix _transformation = Matrix.Identity * Matrix.CreateScale(2.5f);
+        Camera _camera;
+        KeyboardState _previousKeyboardState;
+        MouseState _previousMouseState;
 
         public IsoBlockEditor()
         {
@@ -70,6 +74,8 @@ namespace IsoBlockEditor
             // TODO: Add your initialization logic here
 
             _map = new Tile[30, 10];
+            _previousKeyboardState = Keyboard.GetState();
+            _previousMouseState = Mouse.GetState();
 
             base.Initialize();
         }
@@ -77,6 +83,8 @@ namespace IsoBlockEditor
         protected override void LoadContent()
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
+
+            _camera = new Camera(GraphicsDevice.Viewport, new Vector2(100, 100), 2.5f);
 
             var height = _map.GetLength(0);
             var width = _map.GetLength(1);
@@ -91,6 +99,7 @@ namespace IsoBlockEditor
 
                     _map[i, j] = new Tile
                     {
+                        IsFilled = i == 7 && j == 1,
                         IsHighlighted = false,
                         Rectangle = new Rectangle(x, y, 50, 50),
                         Bounds = (
@@ -108,8 +117,34 @@ namespace IsoBlockEditor
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
+            var ks = Keyboard.GetState();
+            if (ks.IsKeyDown(Keys.Up))
+            {
+                _camera.Target.Y -= 1;
+            }
+            if (ks.IsKeyDown(Keys.Down))
+            {
+                _camera.Target.Y += 1;
+            }
+            if (ks.IsKeyDown(Keys.Left))
+            {
+                _camera.Target.X -= 1;
+            }
+            if (ks.IsKeyDown(Keys.Right))
+            {
+                _camera.Target.X += 1;
+            }
+            if (ks.IsKeyDown(Keys.Subtract))
+            {
+                _camera.Zoom -= 0.1f;
+            }
+            if (ks.IsKeyDown(Keys.Add))
+            {
+                _camera.Zoom += 0.1f;
+            }
+
             var mousePosition = Mouse.GetState().Position.ToVector2();
-            var inverse = Matrix.Invert(_transformation);
+            var inverse = _camera.ScreenToWorld();
             mousePosition = Vector2.Transform(mousePosition, inverse);
 
             // Get the tile that the mouse is currently over
@@ -123,8 +158,30 @@ namespace IsoBlockEditor
                     var x = j * 42 + offset;
                     var y = i * 12;
                     _map[i, j].IsHighlighted = _map[i, j].PointInTile(mousePosition);
+
+                    if (_map[i, j].IsFilled)
+                    {
+                        if (_map[i, j].IsHighlighted
+                            && _previousMouseState.LeftButton == ButtonState.Pressed
+                            && Mouse.GetState().LeftButton == ButtonState.Released)
+                        {
+                            _map[i, j].IsSelected = !_map[i, j].IsSelected;
+                        }
+                    }
+                    else
+                    {
+                        if (_map[i, j].IsHighlighted
+                            && _previousMouseState.LeftButton == ButtonState.Pressed
+                            && Mouse.GetState().LeftButton == ButtonState.Released)
+                        {
+                            _map[i, j].IsFilled = true;
+                        }
+                    }
                 }
             }
+
+            _previousKeyboardState = ks;
+            _previousMouseState = Mouse.GetState();
 
             base.Update(gameTime);
         }
@@ -135,23 +192,38 @@ namespace IsoBlockEditor
 
             var height = _map.GetLength(0);
             var width = _map.GetLength(1);
+            var transformation = _camera.WorldToScreen();
 
             _spriteBatch.Begin(
                 sortMode: SpriteSortMode.Deferred,
-                transformMatrix: _transformation,
+                transformMatrix: transformation,
                 rasterizerState: RasterizerState.CullCounterClockwise);
 
             for (var i = 0; i < height; i++)
             {
                 for (var j = 0; j < width; j++)
                 {
-                    if (_map[i, j].IsHighlighted)
+                    if (_map[i, j].IsFilled)
                     {
-                        _spriteBatch.Draw(_tileTexture, _map[i, j].Rectangle, Color.Green);
+                        if (_map[i, j].IsSelected)
+                        {
+                            _spriteBatch.Draw(_tileTexture, _map[i, j].Rectangle, Color.Red);
+                        }
+                        else if (_map[i, j].IsHighlighted)
+                        {
+                            _spriteBatch.Draw(_tileTexture, _map[i, j].Rectangle, Color.Green);
+                        }
+                        else
+                        {
+                            _spriteBatch.Draw(_tileTexture, _map[i, j].Rectangle, Color.White);
+                        }
                     }
                     else
                     {
-                        _spriteBatch.Draw(_tileTexture, _map[i, j].Rectangle, Color.White);
+                        if (_map[i, j].IsHighlighted)
+                        {
+                            _spriteBatch.Draw(_tileTexture, _map[i, j].Rectangle, Color.White * 0.5f);
+                        }
                     }
                 }
             }
