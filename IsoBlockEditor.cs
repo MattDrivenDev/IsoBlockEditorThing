@@ -175,11 +175,19 @@ namespace IsoBlockEditor
 
                     if (_map[i, j].IsFilled)
                     {
-                        if (_map[i, j].IsHighlighted
-                            && _previousMouseState.LeftButton == ButtonState.Pressed
-                            && Mouse.GetState().LeftButton == ButtonState.Released)
+                        if (_map[i, j].IsHighlighted)
                         {
-                            _map[i, j].IsSelected = !_map[i, j].IsSelected;
+                            if (_previousMouseState.LeftButton == ButtonState.Pressed
+                            && Mouse.GetState().LeftButton == ButtonState.Released)
+                            {
+                                _map[i, j].IsSelected = !_map[i, j].IsSelected;
+                            }
+                            else if (_previousMouseState.RightButton == ButtonState.Pressed
+                                && Mouse.GetState().RightButton == ButtonState.Released)
+                            {
+                                _map[i, j].IsFilled = false;
+                                _map[i, j].Texture = null;
+                            }
                         }
                     }
                     else
@@ -222,11 +230,11 @@ namespace IsoBlockEditor
                     {
                         if (_map[i, j].IsSelected)
                         {
-                            _spriteBatch.Draw(_map[i, j].Texture, _map[i, j].Rectangle, Color.Red);
+                            _spriteBatch.Draw(_map[i, j].Texture, _map[i, j].Rectangle, Color.Blue);
                         }
                         else if (_map[i, j].IsHighlighted)
                         {
-                            _spriteBatch.Draw(_map[i, j].Texture, _map[i, j].Rectangle, Color.Green);
+                            _spriteBatch.Draw(_map[i, j].Texture, _map[i, j].Rectangle, Color.Red);
                         }
                         else
                         {
