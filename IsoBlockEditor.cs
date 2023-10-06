@@ -43,6 +43,7 @@ namespace IsoBlockEditor
         public bool IsHighlighted;
         public (Triangle, Triangle) Bounds;
         public Rectangle Rectangle;
+        public Texture2D Texture;
 
         public bool PointInTile(Point p) => PointInTile(p.ToVector2());
 
@@ -56,11 +57,13 @@ namespace IsoBlockEditor
     {
         GraphicsDeviceManager _graphics;
         SpriteBatch _spriteBatch;
-        Texture2D _tileTexture;
+        Texture2D _landTexture;
+        Texture2D _waterTexture;
         Tile[,] _map;
         Camera _camera;
         KeyboardState _previousKeyboardState;
         MouseState _previousMouseState;
+        Texture2D _currentTexture;
 
         public IsoBlockEditor()
         {
@@ -84,6 +87,10 @@ namespace IsoBlockEditor
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
+            _landTexture = Content.Load<Texture2D>("blocks_50x50/isometric_pixel_0014");
+            _waterTexture = Content.Load<Texture2D>("blocks_50x50/isometric_pixel_0064");
+            _currentTexture = _landTexture;
+
             _camera = new Camera(GraphicsDevice.Viewport, new Vector2(100, 100), 2.5f);
 
             var height = _map.GetLength(0);
@@ -100,6 +107,8 @@ namespace IsoBlockEditor
                     _map[i, j] = new Tile
                     {
                         IsFilled = i == 7 && j == 1,
+                        IsSelected = false,
+                        Texture = i == 7 && j == 1 ? _currentTexture : null,
                         IsHighlighted = false,
                         Rectangle = new Rectangle(x, y, 50, 50),
                         Bounds = (
@@ -108,8 +117,6 @@ namespace IsoBlockEditor
                     };
                 }
             }
-
-            _tileTexture = Content.Load<Texture2D>("blocks_50x50/isometric_pixel_0000");
         }
 
         protected override void Update(GameTime gameTime)
@@ -143,9 +150,16 @@ namespace IsoBlockEditor
                 _camera.Zoom += 0.1f;
             }
 
-            var mousePosition = Mouse.GetState().Position.ToVector2();
+            var ms = Mouse.GetState();
+            var mousePosition = ms.Position.ToVector2();
             var inverse = _camera.ScreenToWorld();
             mousePosition = Vector2.Transform(mousePosition, inverse);
+
+            if (ms.ScrollWheelValue > _previousMouseState.ScrollWheelValue
+                || ms.ScrollWheelValue < _previousMouseState.ScrollWheelValue)
+            {
+                _currentTexture = _currentTexture == _landTexture ? _waterTexture : _landTexture;
+            }
 
             // Get the tile that the mouse is currently over
             var height = _map.GetLength(0);
@@ -175,13 +189,14 @@ namespace IsoBlockEditor
                             && Mouse.GetState().LeftButton == ButtonState.Released)
                         {
                             _map[i, j].IsFilled = true;
+                            _map[i, j].Texture = _currentTexture;
                         }
                     }
                 }
             }
 
             _previousKeyboardState = ks;
-            _previousMouseState = Mouse.GetState();
+            _previousMouseState = ms;
 
             base.Update(gameTime);
         }
@@ -207,22 +222,22 @@ namespace IsoBlockEditor
                     {
                         if (_map[i, j].IsSelected)
                         {
-                            _spriteBatch.Draw(_tileTexture, _map[i, j].Rectangle, Color.Red);
+                            _spriteBatch.Draw(_map[i, j].Texture, _map[i, j].Rectangle, Color.Red);
                         }
                         else if (_map[i, j].IsHighlighted)
                         {
-                            _spriteBatch.Draw(_tileTexture, _map[i, j].Rectangle, Color.Green);
+                            _spriteBatch.Draw(_map[i, j].Texture, _map[i, j].Rectangle, Color.Green);
                         }
                         else
                         {
-                            _spriteBatch.Draw(_tileTexture, _map[i, j].Rectangle, Color.White);
+                            _spriteBatch.Draw(_map[i, j].Texture, _map[i, j].Rectangle, Color.White);
                         }
                     }
                     else
                     {
                         if (_map[i, j].IsHighlighted)
                         {
-                            _spriteBatch.Draw(_tileTexture, _map[i, j].Rectangle, Color.White * 0.5f);
+                            _spriteBatch.Draw(_currentTexture, _map[i, j].Rectangle, Color.White * 0.5f);
                         }
                     }
                 }
