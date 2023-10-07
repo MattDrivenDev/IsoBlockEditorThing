@@ -4,62 +4,15 @@ using Microsoft.Xna.Framework.Input;
 
 namespace IsoBlockEditor
 {
-    public struct Triangle
-    {
-        public Vector2 A;
-        public Vector2 B;
-        public Vector2 C;
-
-        public Triangle(Vector2 a, Vector2 b, Vector2 c)
-        {
-            A = a;
-            B = b;
-            C = c;
-        }
-
-        public bool PointInTriangle(Point p) => PointInTriangle(p.ToVector2());
-
-        public bool PointInTriangle(Vector2 p)
-        {
-            var v0 = C - A;
-            var v1 = B - A;
-            var v2 = p - A;
-            var dot00 = Vector2.Dot(v0, v0);
-            var dot01 = Vector2.Dot(v0, v1);
-            var dot02 = Vector2.Dot(v0, v2);
-            var dot11 = Vector2.Dot(v1, v1);
-            var dot12 = Vector2.Dot(v1, v2);
-            var invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
-            var u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-            var v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-            return (u >= 0) && (v >= 0) && (u + v < 1);
-        }
-    }
-
-    public struct Tile
-    {
-        public bool IsFilled;
-        public bool IsSelected;
-        public bool IsHighlighted;
-        public (Triangle, Triangle) Bounds;
-        public Rectangle Rectangle;
-        public Texture2D Texture;
-
-        public bool PointInTile(Point p) => PointInTile(p.ToVector2());
-
-        public bool PointInTile(Vector2 p)
-        {
-            return Bounds.Item1.PointInTriangle(p) || Bounds.Item2.PointInTriangle(p);
-        }
-    }
 
     public class IsoBlockEditor : Game
     {
         GraphicsDeviceManager _graphics;
+        Rectangle _playArea;
         SpriteBatch _spriteBatch;
         Texture2D _landTexture;
         Texture2D _waterTexture;
-        Tile[,] _map;
+        IsoBlockyTile[,] _map;
         Camera _camera;
         KeyboardState _previousKeyboardState;
         MouseState _previousMouseState;
@@ -75,14 +28,12 @@ namespace IsoBlockEditor
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
-
-            _map = new Tile[30, 10];
             _previousKeyboardState = Keyboard.GetState();
             _previousMouseState = Mouse.GetState();
 
             base.Initialize();
         }
-
+            
         protected override void LoadContent()
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
@@ -91,30 +42,24 @@ namespace IsoBlockEditor
             _waterTexture = Content.Load<Texture2D>("blocks_50x50/isometric_pixel_0064");
             _currentTexture = _landTexture;
 
-            _camera = new Camera(GraphicsDevice.Viewport, new Vector2(100, 100), 2.5f);
+            _playArea = new Rectangle(0, 0, 100, 75);
+            var widthInTiles = (_playArea.Width / IsoBlockyTile.TOP_SURFACE_WIDTH);
+            var heightIntTiles = (_playArea.Height / IsoBlockyTile.TOP_SURFACE_HEIGHT);
+            _map = new IsoBlockyTile[heightIntTiles, widthInTiles];
+
+            _camera = new Camera(GraphicsDevice.Viewport, new Vector2(100, 100), 1.5f);
 
             var height = _map.GetLength(0);
             var width = _map.GetLength(1);
 
             for (var i = 0; i < height; i++)
             {
-                var offset = i % 2 == 0 ? 0 : 21;
+                var offset = i % 2 == 0 ? 0 : IsoBlockyTile.ISO_HORIZONTAL_OFFSET;
                 for(var j = 0; j < width; j++)
                 {
-                    var x = j * 42 + offset;
-                    var y = i * 12;
-
-                    _map[i, j] = new Tile
-                    {
-                        IsFilled = i == 7 && j == 1,
-                        IsSelected = false,
-                        Texture = i == 7 && j == 1 ? _currentTexture : null,
-                        IsHighlighted = false,
-                        Rectangle = new Rectangle(x, y, 50, 50),
-                        Bounds = (
-                            new Triangle(new Vector2(x + 4, y + 13), new Vector2(x + 24, y + 1), new Vector2(x + 45, y + 13)),
-                            new Triangle(new Vector2(x + 4, y + 13), new Vector2(x + 25, y + 25), new Vector2(x + 45, y + 13)))
-                    };
+                    var x = j * IsoBlockyTile.TOP_SURFACE_WIDTH + offset;
+                    var y = i * IsoBlockyTile.TOP_SURFACE_HEIGHT;
+                    _map[i, j] = new IsoBlockyTile(new Rectangle(x, y, IsoBlockyTile.TEXTURE_WIDTH, IsoBlockyTile.TEXTURE_HEIGHT));
                 }
             }
         }
@@ -166,14 +111,14 @@ namespace IsoBlockEditor
             var width = _map.GetLength(1);
             for (var i = 0; i < height; i++)
             {
-                var offset = i % 2 == 0 ? 0 : 21;
+                var offset = i % 2 == 0 ? 0 : IsoBlockyTile.ISO_HORIZONTAL_OFFSET;
                 for (var j = 0; j < width; j++)
                 {
-                    var x = j * 42 + offset;
-                    var y = i * 12;
-                    _map[i, j].IsHighlighted = _map[i, j].PointInTile(mousePosition);
+                    var x = j * IsoBlockyTile.TOP_SURFACE_WIDTH + offset;
+                    var y = i * IsoBlockyTile.TOP_SURFACE_HEIGHT;
+                    _map[i, j].IsHighlighted = _map[i, j].TopSurfaceContains(mousePosition);
 
-                    if (_map[i, j].IsFilled)
+                    if (_map[i, j].IsActive)
                     {
                         if (_map[i, j].IsHighlighted)
                         {
@@ -185,7 +130,7 @@ namespace IsoBlockEditor
                             else if (_previousMouseState.RightButton == ButtonState.Pressed
                                 && Mouse.GetState().RightButton == ButtonState.Released)
                             {
-                                _map[i, j].IsFilled = false;
+                                _map[i, j].IsActive = false;
                                 _map[i, j].Texture = null;
                             }
                         }
@@ -196,7 +141,7 @@ namespace IsoBlockEditor
                             && _previousMouseState.LeftButton == ButtonState.Pressed
                             && Mouse.GetState().LeftButton == ButtonState.Released)
                         {
-                            _map[i, j].IsFilled = true;
+                            _map[i, j].IsActive = true;
                             _map[i, j].Texture = _currentTexture;
                         }
                     }
@@ -222,11 +167,13 @@ namespace IsoBlockEditor
                 transformMatrix: transformation,
                 rasterizerState: RasterizerState.CullCounterClockwise);
 
+            _spriteBatch.FillRectangle(_playArea, Color.Red);
+
             for (var i = 0; i < height; i++)
             {
                 for (var j = 0; j < width; j++)
                 {
-                    if (_map[i, j].IsFilled)
+                    if (_map[i, j].IsActive)
                     {
                         if (_map[i, j].IsSelected)
                         {
