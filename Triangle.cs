@@ -2,6 +2,13 @@
 
 namespace IsoBlockEditor
 {
+    /// <summary>
+    /// Just a simple triangle similar to the Rectangle we 
+    /// all know and love. It lets us do some simple math
+    /// for determining if a point is inside the triangle
+    /// and that's about it. Used because isometric tiles
+    /// are not orthogonal and so we can't use a Rectangle.
+    /// </summary>
     public struct Triangle
     {
         public Vector2 A;
