@@ -22,10 +22,10 @@ namespace IsoBlockEditor
             _landTexture = content.Load<Texture2D>("blocks_50x50/isometric_pixel_0014");
             _waterTexture = content.Load<Texture2D>("blocks_50x50/isometric_pixel_0064");
             _currentTexture = _landTexture;
-
-            _playArea = playArea;
             _camera = camera;
-            var (width, height) = CalculateMapDimensionsToFitPlayArea();
+            _playArea = playArea;
+
+            var (width, height) = CalculateMapDimensionsToFitPlayArea();            
             _tiles = new IsoBlockyTile[height, width];
 
             for (var i = 0; i < height; i++)
@@ -36,10 +36,14 @@ namespace IsoBlockEditor
                     var x = j * IsoBlockyTile.TOP_SURFACE_WIDTH + offset;
                     var y = i * IsoBlockyTile.TOP_SURFACE_HEIGHT;
                     _tiles[i, j] = new IsoBlockyTile(new Vector2(x, y));
+
+                    // Even rows are aesthetically displeasing when they extend
+                    // beyond the odd rows. But, arrays are not jagged, so we just
+                    // put a null in the even rows. We can safely break out since
+                    // we're on the final iteration of the row loop.
+                    if (offset > 0 && j == width - 1) _tiles[i, j].IsDeadTile = true;
                 }
             }
-            _playArea = playArea;
-
         }
 
         public (int, int) CalculateMapDimensionsToFitPlayArea()
@@ -83,8 +87,12 @@ namespace IsoBlockEditor
                 var offset = i % 2 == 0 ? 0 : IsoBlockyTile.ISO_HORIZONTAL_OFFSET;
                 for (var j = 0; j < width; j++)
                 {
-                    var x = j * IsoBlockyTile.TOP_SURFACE_WIDTH + offset;
-                    var y = i * IsoBlockyTile.TOP_SURFACE_HEIGHT;
+                    // Even rows are aesthetically displeasing when they extend
+                    // beyond the odd rows. But, arrays are not jagged, so we just
+                    // put a null in the even rows. We can safely break out since
+                    // we're on the final iteration of the row loop.
+                    if (_tiles[i, j].IsDeadTile) continue;
+
                     _tiles[i, j].IsHighlighted = _tiles[i, j].TopSurfaceContains(mousePosition);
 
                     if (_tiles[i, j].IsActive)
@@ -134,6 +142,8 @@ namespace IsoBlockEditor
             {
                 for (var j = 0; j < width; j++)
                 {
+                    if (_tiles[i, j].IsDeadTile) continue;
+
                     if (_tiles[i, j].IsActive)
                     {
                         if (_tiles[i, j].IsSelected)
@@ -179,23 +189,26 @@ namespace IsoBlockEditor
         public bool IsActive;
         public bool IsSelected;
         public bool IsHighlighted;
+        public bool IsDeadTile;
         public Texture2D Texture;
         public Vector2 Position;
         public Rectangle Rectangle;
         (Triangle, Triangle) TopSurface;
 
         public IsoBlockyTile(
-            Vector2 position, 
+            Vector2 position,
             Texture2D texture = null,
-            bool isActive = false, 
-            bool isSelected = false, 
-            bool isHighlighted = false)
+            bool isActive = false,
+            bool isSelected = false,
+            bool isHighlighted = false,
+            bool isDeadTile = false)
         {
             Position = position;
             Texture = texture;
             IsActive = isActive;
             IsSelected = isSelected;
             IsHighlighted = isHighlighted;
+            IsDeadTile = isDeadTile;
 
             // RECTANGLE:
             // The rectangle is used for drawing the texture and potentially
