@@ -1,6 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System.Linq;
 
 namespace IsoBlockEditor
 {
@@ -12,6 +14,7 @@ namespace IsoBlockEditor
         KeyboardState _previousKeyboardState;
         MouseState _previousMouseState;
         IsoBlockyMappy _map;
+        Red _red;
 
         public IsoBlockEditor()
         {
@@ -33,8 +36,12 @@ namespace IsoBlockEditor
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
             _camera = new Camera(GraphicsDevice.Viewport, new Vector2(100, 100), 1.5f);
-            _map = new IsoBlockyMappy(Content, _camera, new Rectangle(0, 0, 100, 75));
-            _map.DrawPlayArea = true;
+            _map = new IsoBlockyMappy(Content, _camera, new Rectangle(0, 0, 400, 300));
+
+            // We'll get a crash if we don't have a spawn point - good.
+            var spawn = _map.ActiveTiles.Single();
+            var spawnpoint = spawn.Position;
+            _red = new Red(Content, spawnpoint);
         }
 
         protected override void Update(GameTime gameTime)
@@ -74,6 +81,7 @@ namespace IsoBlockEditor
             mousePosition = Vector2.Transform(mousePosition, inverse);
 
             _map.Update(gameTime);
+            _red.Update(gameTime);
 
             _previousKeyboardState = ks;
             _previousMouseState = ms;
@@ -90,9 +98,11 @@ namespace IsoBlockEditor
             _spriteBatch.Begin(
                 sortMode: SpriteSortMode.Deferred,
                 transformMatrix: transformation,
-                rasterizerState: RasterizerState.CullCounterClockwise);
+                rasterizerState: RasterizerState.CullCounterClockwise,
+                samplerState: SamplerState.PointClamp);
 
             _map.Draw(_spriteBatch, gameTime);
+            _red.Draw(_spriteBatch, gameTime);
             
             _spriteBatch.End();
 

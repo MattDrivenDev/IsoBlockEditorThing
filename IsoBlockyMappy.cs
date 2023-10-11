@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System.Collections.Generic;
 
 namespace IsoBlockEditor
 {
@@ -25,7 +26,8 @@ namespace IsoBlockEditor
             _camera = camera;
             _playArea = playArea;
 
-            var (width, height) = CalculateMapDimensionsToFitPlayArea();            
+            var (width, height) = CalculateMapDimensionsToFitPlayArea();
+            var (halfWidth, halfHeight) = (width / 2, height / 2);
             _tiles = new IsoBlockyTile[height, width];
 
             for (var i = 0; i < height; i++)
@@ -35,7 +37,14 @@ namespace IsoBlockEditor
                 {
                     var x = j * IsoBlockyTile.TOP_SURFACE_WIDTH + offset;
                     var y = i * IsoBlockyTile.TOP_SURFACE_HEIGHT;
-                    _tiles[i, j] = new IsoBlockyTile(new Vector2(x, y));
+                    _tiles[i, j] =  new IsoBlockyTile(new Vector2(x, y));
+
+                    // Place the tile in the center of the play area (roughly)
+                    if (i == halfHeight && j == halfWidth)
+                    {
+                        _tiles[i, j].IsActive = true;
+                        _tiles[i, j].Texture = _currentTexture;
+                    }
 
                     // Even rows are aesthetically displeasing when they extend
                     // beyond the odd rows. But, arrays are not jagged, so we just
@@ -46,7 +55,23 @@ namespace IsoBlockEditor
             }
         }
 
-        public (int, int) CalculateMapDimensionsToFitPlayArea()
+        public IEnumerable<IsoBlockyTile> ActiveTiles
+        {
+            get
+            {
+                var height = _tiles.GetLength(0);
+                var width = _tiles.GetLength(1);
+                for (var i = 0; i < height; i++)
+                {
+                    for (var j = 0; j < width; j++)
+                    {
+                        if (_tiles[i, j].IsActive) yield return _tiles[i, j];
+                    }
+                }
+            }
+        }
+
+        private (int, int) CalculateMapDimensionsToFitPlayArea()
         {
             // Our play area is a rectangle. Our tiles are positioned so that the 
             // position is the center of the 50x50 texture. So, if our first tile 
