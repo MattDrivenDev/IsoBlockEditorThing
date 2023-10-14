@@ -12,16 +12,17 @@ namespace IsoBlockEditor
         MouseState _previousMouseState;
         KeyboardState _previousKeyboardState;
         Texture2D _landTexture;
-        Texture2D _waterTexture;
         Texture2D _currentTexture;
         Camera _camera;
         Rectangle _playArea;
+        
+        public IsoBlockyTile SelectedTile;
         public bool DrawPlayArea = false;
 
         public IsoBlockyMappy(ContentManager content, Camera camera, Rectangle playArea)
         {
             _landTexture = content.Load<Texture2D>("blocks_50x50/isometric_pixel_0014");
-            _waterTexture = content.Load<Texture2D>("blocks_50x50/isometric_pixel_0064");
+            //_waterTexture = content.Load<Texture2D>("blocks_50x50/isometric_pixel_0064");
             _currentTexture = _landTexture;
             _camera = camera;
             _playArea = playArea;
@@ -30,6 +31,7 @@ namespace IsoBlockEditor
             var (halfWidth, halfHeight) = (width / 2, height / 2);
             _tiles = new IsoBlockyTile[height, width];
 
+            int id = 1;
             for (var i = 0; i < height; i++)
             {
                 var offset = i % 2 == 0 ? 0 : IsoBlockyTile.ISO_HORIZONTAL_OFFSET;
@@ -37,7 +39,8 @@ namespace IsoBlockEditor
                 {
                     var x = j * IsoBlockyTile.TOP_SURFACE_WIDTH + offset;
                     var y = i * IsoBlockyTile.TOP_SURFACE_HEIGHT;
-                    _tiles[i, j] =  new IsoBlockyTile(new Vector2(x, y));
+                    _tiles[i, j] = new IsoBlockyTile(id, new Vector2(x, y));
+                    id++;
 
                     // Place the tile in the center of the play area (roughly)
                     if (i == halfHeight && j == halfWidth)
@@ -55,41 +58,6 @@ namespace IsoBlockEditor
             }
         }
 
-        public IEnumerable<IsoBlockyTile> ActiveTiles
-        {
-            get
-            {
-                var height = _tiles.GetLength(0);
-                var width = _tiles.GetLength(1);
-                for (var i = 0; i < height; i++)
-                {
-                    for (var j = 0; j < width; j++)
-                    {
-                        if (_tiles[i, j].IsActive) yield return _tiles[i, j];
-                    }
-                }
-            }
-        }
-
-        private (int, int) CalculateMapDimensionsToFitPlayArea()
-        {
-            // Our play area is a rectangle. Our tiles are positioned so that the 
-            // position is the center of the 50x50 texture. So, if our first tile 
-            // is at 0,0 on the play area, then the top left corner of the tile
-            // is at -25, -25. Tiles are positioned so that the top surface is flush
-            // together. The top surface is 45 wide and 12 high. To fit, we offset
-            // every other row with 21 pixels too.#
-            var width = _playArea.Width / IsoBlockyTile.TOP_SURFACE_WIDTH;
-            var height = _playArea.Height / IsoBlockyTile.TOP_SURFACE_HEIGHT;
-
-            // If there is a remainder, then we need to add one more tile to the
-            // width or height to make sure we cover the entire play area.
-            if (_playArea.Width % IsoBlockyTile.TOP_SURFACE_WIDTH != 0) width++;
-            if (_playArea.Height % IsoBlockyTile.TOP_SURFACE_HEIGHT != 0) height++;
-
-            return (width, height);
-        }
-
         public void Update(GameTime gameTime)
         {
             var ks = Keyboard.GetState();
@@ -98,11 +66,11 @@ namespace IsoBlockEditor
             var inverse = _camera.ScreenToWorld();
             mousePosition = Vector2.Transform(mousePosition, inverse);
 
-            if (ms.ScrollWheelValue > _previousMouseState.ScrollWheelValue
-                || ms.ScrollWheelValue < _previousMouseState.ScrollWheelValue)
-            {
-                _currentTexture = _currentTexture == _landTexture ? _waterTexture : _landTexture;
-            }
+            //if (ms.ScrollWheelValue > _previousMouseState.ScrollWheelValue
+            //    || ms.ScrollWheelValue < _previousMouseState.ScrollWheelValue)
+            //{
+            //    _currentTexture = _currentTexture == _landTexture ? _waterTexture : _landTexture;
+            //}
 
             // Get the tile that the mouse is currently over
             var height = _tiles.GetLength(0);
@@ -127,7 +95,7 @@ namespace IsoBlockEditor
                             if (_previousMouseState.LeftButton == ButtonState.Pressed
                             && Mouse.GetState().LeftButton == ButtonState.Released)
                             {
-                                _tiles[i, j].IsSelected = !_tiles[i, j].IsSelected;
+                                SelectedTile = _tiles[i, j];
                             }
                             else if (_previousMouseState.RightButton == ButtonState.Pressed
                                 && Mouse.GetState().RightButton == ButtonState.Released)
@@ -171,7 +139,7 @@ namespace IsoBlockEditor
 
                     if (_tiles[i, j].IsActive)
                     {
-                        if (_tiles[i, j].IsSelected)
+                        if (_tiles[i, j] == SelectedTile)
                         {
                             spriteBatch.Draw(_tiles[i, j].Texture, _tiles[i, j].Rectangle, Color.Blue);
                         }
@@ -194,6 +162,57 @@ namespace IsoBlockEditor
                 }
             }
         }
+
+        private (int, int) CalculateMapDimensionsToFitPlayArea()
+        {
+            // Our play area is a rectangle. Our tiles are positioned so that the 
+            // position is the center of the 50x50 texture. So, if our first tile 
+            // is at 0,0 on the play area, then the top left corner of the tile
+            // is at -25, -25. Tiles are positioned so that the top surface is flush
+            // together. The top surface is 45 wide and 12 high. To fit, we offset
+            // every other row with 21 pixels too.#
+            var width = _playArea.Width / IsoBlockyTile.TOP_SURFACE_WIDTH;
+            var height = _playArea.Height / IsoBlockyTile.TOP_SURFACE_HEIGHT;
+
+            // If there is a remainder, then we need to add one more tile to the
+            // width or height to make sure we cover the entire play area.
+            if (_playArea.Width % IsoBlockyTile.TOP_SURFACE_WIDTH != 0) width++;
+            if (_playArea.Height % IsoBlockyTile.TOP_SURFACE_HEIGHT != 0) height++;
+
+            return (width, height);
+        }
+
+        public IEnumerable<IsoBlockyTile> ActiveTiles
+        {
+            get
+            {
+                var height = _tiles.GetLength(0);
+                var width = _tiles.GetLength(1);
+                for (var i = 0; i < height; i++)
+                {
+                    for (var j = 0; j < width; j++)
+                    {
+                        if (_tiles[i, j].IsActive) yield return _tiles[i, j];
+                    }
+                }
+            }
+        }
+
+        public IsoBlockyTile GetTileFromPosition(Vector2 position)
+        {
+            var height = _tiles.GetLength(0);
+            var width = _tiles.GetLength(1);
+
+            for (var i = 0; i < height; i++)
+            {
+                for (var j = 0; j < width; j++)
+                {
+                    if (_tiles[i, j].TopSurfaceContains(position)) return _tiles[i, j];
+                }
+            }
+
+            return null;
+        }
     }
 
     /// <summary>
@@ -201,8 +220,11 @@ namespace IsoBlockEditor
     /// so has a diamond-shaped top surface for selecting/highlighting
     /// etc. 
     /// </summary>
-    public struct IsoBlockyTile
+    public class IsoBlockyTile
     {
+        // This WAS a struct, but I changed it to a class because it was
+        // more useful to treat it as a reference type. 
+
         public const int TEXTURE_WIDTH = 50;
         public const int TEXTURE_HALF_WIDTH = 25;
         public const int TEXTURE_HEIGHT = 50;
@@ -211,8 +233,8 @@ namespace IsoBlockEditor
         public const int TOP_SURFACE_HEIGHT = 12;
         public const int ISO_HORIZONTAL_OFFSET = 21;
 
+        public int Id;
         public bool IsActive;
-        public bool IsSelected;
         public bool IsHighlighted;
         public bool IsDeadTile;
         public Texture2D Texture;
@@ -221,17 +243,17 @@ namespace IsoBlockEditor
         (Triangle, Triangle) TopSurface;
 
         public IsoBlockyTile(
+            int id,
             Vector2 position,
             Texture2D texture = null,
             bool isActive = false,
-            bool isSelected = false,
             bool isHighlighted = false,
             bool isDeadTile = false)
         {
+            Id = id;
             Position = position;
             Texture = texture;
             IsActive = isActive;
-            IsSelected = isSelected;
             IsHighlighted = isHighlighted;
             IsDeadTile = isDeadTile;
 

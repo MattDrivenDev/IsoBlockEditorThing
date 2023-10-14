@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using System;
 
 namespace IsoBlockEditor
 {
@@ -31,19 +32,23 @@ namespace IsoBlockEditor
         Animation _crouch;
         Animation _sneak;
         Animation _currentAnimation;
+        IsoBlockyMappy _map;
+        IsoBlockyTile _currentTile;
 
-        public Dino(ContentManager content, string spritesheet, Vector2 position)
-        {   
+        public Dino(ContentManager content, IsoBlockyMappy map, string spritesheet, Vector2 position)
+        {
+            _map = map;
             _spritesheet = content.Load<Texture2D>(spritesheet);
             _shadow = content.Load<Texture2D>("dinos/shadow");
-            _position = position;                                 
-            _idle = new Animation(_spritesheet, CreateFrames(FIRST_FRAME_IDLE, FRAME_COUNT_IDLE));            
+            _position = position;
+            _idle = new Animation(_spritesheet, CreateFrames(FIRST_FRAME_IDLE, FRAME_COUNT_IDLE));
             _walk = new Animation(_spritesheet, CreateFrames(FIRST_FRAME_WALK, FRAME_COUNT_WALK));
             _kick = new Animation(_spritesheet, CreateFrames(FIRST_FRAME_KICK, FRAME_COUNT_KICK));
             _hurt = new Animation(_spritesheet, CreateFrames(FIRST_FRAME_HURT, FRAME_COUNT_HURT));
             _crouch = new Animation(_spritesheet, CreateFrames(FIRST_FRAME_CROUCH, FRAME_COUNT_CROUCH));
             _sneak = new Animation(_spritesheet, CreateFrames(FIRST_FRAME_SNEAK, FRAME_COUNT_SNEAK));
             _currentAnimation = _idle;
+            _currentTile = _map.GetTileFromPosition(position) ?? throw new Exception("No tile found at dino spawn point.");
         }
 
         private Rectangle[] CreateFrames(int firstFrame, int frameCount)
@@ -59,6 +64,13 @@ namespace IsoBlockEditor
 
         public void Update(GameTime gameTime)
         {
+            if (_map.SelectedTile != null && _currentTile != _map.SelectedTile)
+            {
+                // Move to the selected tile!
+
+                // When you're at the selected tile, move into the centre of the top surface
+            }
+
             _currentAnimation.Update(gameTime);
         }
 
@@ -80,25 +92,25 @@ namespace IsoBlockEditor
 
     public class Red : Dino
     {
-        public Red(ContentManager content, Vector2 position) 
-            : base(content, "dinos/red", position) { }
+        public Red(ContentManager content, IsoBlockyMappy map, Vector2 position) 
+            : base(content, map, "dinos/red", position) { }
     }
 
     public class Blue : Dino
     {
-        public Blue(ContentManager content, Vector2 position) 
-            : base(content, "dinos/blue", position) { }
+        public Blue(ContentManager content, IsoBlockyMappy map, Vector2 position) 
+            : base(content, map, "dinos/blue", position) { }
     }
 
     public class Green : Dino
     {
-        public Green(ContentManager content, Vector2 position) 
-            : base(content, "dinos/green", position) { }
+        public Green(ContentManager content, IsoBlockyMappy map, Vector2 position) 
+            : base(content, map, "dinos/green", position) { }
     }
 
     public class Yellow : Dino
     {
-        public Yellow(ContentManager content, Vector2 position) 
-            : base(content, "dinos/yellow", position) { }
+        public Yellow(ContentManager content, IsoBlockyMappy map, Vector2 position) 
+            : base(content, map, "dinos/yellow", position) { }
     }
 }
