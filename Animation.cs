@@ -9,12 +9,14 @@ namespace IsoBlockEditor
         Rectangle[] _frames;
         int _currentFrame;
         float _frameTime;
+        bool _loop;
 
-        public Animation(Texture2D spritesheet, Rectangle[] frames)
+        public Animation(Texture2D spritesheet, Rectangle[] frames, bool loop = true)
         {
             _spritesheet = spritesheet;
             _frames = frames;
             _currentFrame = 0;
+            _loop = loop;
         }
 
         public void Update(GameTime gameTime)
@@ -23,17 +25,29 @@ namespace IsoBlockEditor
             if (_frameTime > 0.1f)
             {
                 _currentFrame++;
-                if (_currentFrame >= _frames.Length)
+                if (_loop)
                 {
-                    _currentFrame = 0;
+                    if (_currentFrame >= _frames.Length) _currentFrame = 0;
+                }
+                else
+                {
+                    if (_currentFrame >= _frames.Length) _currentFrame = _frames.Length - 1;
                 }
                 _frameTime = 0;
             }
         }
 
-        public void Draw(SpriteBatch spriteBatch, Rectangle destination)
+        public void Draw(SpriteBatch spriteBatch, Rectangle destination, SpriteEffects effects)
         {
-            spriteBatch.Draw(_spritesheet, destination, _frames[_currentFrame], Color.White);
+            spriteBatch.Draw(
+                texture: _spritesheet,
+                destinationRectangle: destination,
+                sourceRectangle: _frames[_currentFrame],
+                color: Color.White,
+                rotation: 0,
+                origin: Vector2.Zero,
+                effects: effects,
+                layerDepth: 0);
         }
     }
 }

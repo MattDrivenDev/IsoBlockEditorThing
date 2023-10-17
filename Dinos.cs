@@ -22,6 +22,7 @@ namespace IsoBlockEditor
         const int FIRST_FRAME_SNEAK = 18;
         const int FRAME_COUNT_SNEAK = 6;
 
+        float _direction;
         Vector2 _position;
         Texture2D _spritesheet;
         Texture2D _shadow;
@@ -67,8 +68,15 @@ namespace IsoBlockEditor
             if (_map.SelectedTile != null && _currentTile != _map.SelectedTile)
             {
                 // Move to the selected tile!
+                _currentTile = _map.SelectedTile;
+                _currentAnimation = _walk;
+                _direction = _currentTile.Position.X - _position.X;
+            }
 
+            if (_position != _currentTile.Position)
+            {
                 // When you're at the selected tile, move into the centre of the top surface
+                _position = _currentTile.Position;
             }
 
             _currentAnimation.Update(gameTime);
@@ -84,9 +92,10 @@ namespace IsoBlockEditor
             var y = (int)_position.Y - 12 - 13 - 7;
             var destination = new Rectangle((int)_position.X - 12, y, 24, 24);
             var source = new Rectangle(0, 0, 24, 24);
+            var effects = _direction >= 0 ? SpriteEffects.None : SpriteEffects.FlipHorizontally;
 
             spriteBatch.Draw(_shadow, destination, source, Color.White);
-            _currentAnimation.Draw(spriteBatch, destination);
+            _currentAnimation.Draw(spriteBatch, destination, effects);
         }
     }
 
