@@ -16,6 +16,7 @@ namespace IsoBlockEditor
         Camera _camera;
         Rectangle _playArea;
         
+        public IsoBlockyTile HighlightedTile;
         public IsoBlockyTile SelectedTile;
         public bool DrawPlayArea = false;
 
@@ -39,7 +40,7 @@ namespace IsoBlockEditor
                 {
                     var x = j * IsoBlockyTile.TOP_SURFACE_WIDTH + offset;
                     var y = i * IsoBlockyTile.TOP_SURFACE_HEIGHT;
-                    _tiles[i, j] = new IsoBlockyTile(id, new Vector2(x, y));
+                    _tiles[i, j] = new IsoBlockyTile((i, j), id, new Vector2(x, y));
                     id++;
 
                     // Place the tile in the center of the play area (roughly)
@@ -65,6 +66,7 @@ namespace IsoBlockEditor
             var mousePosition = ms.Position.ToVector2();
             var inverse = _camera.ScreenToWorld();
             mousePosition = Vector2.Transform(mousePosition, inverse);
+            HighlightedTile = null;
 
             //if (ms.ScrollWheelValue > _previousMouseState.ScrollWheelValue
             //    || ms.ScrollWheelValue < _previousMouseState.ScrollWheelValue)
@@ -77,7 +79,6 @@ namespace IsoBlockEditor
             var width = _tiles.GetLength(1);
             for (var i = 0; i < height; i++)
             {
-                var offset = i % 2 == 0 ? 0 : IsoBlockyTile.ISO_HORIZONTAL_OFFSET;
                 for (var j = 0; j < width; j++)
                 {
                     // Even rows are aesthetically displeasing when they extend
@@ -86,11 +87,14 @@ namespace IsoBlockEditor
                     // we're on the final iteration of the row loop.
                     if (_tiles[i, j].IsDeadTile) continue;
 
-                    _tiles[i, j].IsHighlighted = _tiles[i, j].TopSurfaceContains(mousePosition);
+                    if (HighlightedTile == null)
+                    {
+                        HighlightedTile = _tiles[i, j].TopSurfaceContains(mousePosition) ? _tiles[i, j] : null;
+                    }
 
                     if (_tiles[i, j].IsActive)
                     {
-                        if (_tiles[i, j].IsHighlighted)
+                        if (_tiles[i, j] == HighlightedTile)
                         {
                             if (_previousMouseState.LeftButton == ButtonState.Pressed
                             && Mouse.GetState().LeftButton == ButtonState.Released)
@@ -107,12 +111,20 @@ namespace IsoBlockEditor
                     }
                     else
                     {
-                        if (_tiles[i, j].IsHighlighted
+                        if (_tiles[i, j] == HighlightedTile
                             && _previousMouseState.LeftButton == ButtonState.Pressed
                             && Mouse.GetState().LeftButton == ButtonState.Released)
                         {
                             _tiles[i, j].IsActive = true;
                             _tiles[i, j].Texture = _currentTexture;
+
+
+                            var neighbours = GetNeighbouringTiles(_tiles[i, j]);
+                            foreach (var neighbour in neighbours)
+                            {
+                                neighbour.IsActive = true;
+                                neighbour.Texture = _currentTexture;
+                            }
                         }
                     }
                 }
@@ -143,7 +155,7 @@ namespace IsoBlockEditor
                         {
                             spriteBatch.Draw(_tiles[i, j].Texture, _tiles[i, j].Rectangle, Color.Blue);
                         }
-                        else if (_tiles[i, j].IsHighlighted)
+                        else if (_tiles[i, j] == HighlightedTile)
                         {
                             spriteBatch.Draw(_tiles[i, j].Texture, _tiles[i, j].Rectangle, Color.Red);
                         }
@@ -154,7 +166,7 @@ namespace IsoBlockEditor
                     }
                     else
                     {
-                        if (_tiles[i, j].IsHighlighted)
+                        if (_tiles[i, j] == HighlightedTile)
                         {
                             spriteBatch.Draw(_currentTexture, _tiles[i, j].Rectangle, Color.White * 0.5f);
                         }
@@ -198,6 +210,50 @@ namespace IsoBlockEditor
             }
         }
 
+        public IEnumerable<IsoBlockyTile> GetNeighbouringTiles(IsoBlockyTile tile)
+        {
+            // The goal here is to fetch all of the tiles that are adjacent to
+            // the specified tile. Each tile has an Index which has a row and
+            // column. We can use this to determine which tiles are adjacent.
+            // Since tiles are joined by their diamond-shaped top surface, we
+            // only have 4 adjacent tiles.
+            var (row, column) = tile.Index;
+            var neighbours = new List<IsoBlockyTile>();
+            var rows = _tiles.GetLength(0);
+
+            // Odd and Even rows behave differently:
+            if (row % 2 == 0)
+            {
+                // Top-Left
+                if (row > 0 && column > 0) neighbours.Add(_tiles[row - 1, column - 1]);
+
+                // Top-Right (which is just Top because of the draw offsets)
+                if (row > 0) neighbours.Add(_tiles[row - 1, column]);
+
+                // Bottom-Left
+                if (row < rows - 1 && column > 0) neighbours.Add(_tiles[row + 1, column - 1]);
+
+                // Bottom-Right (which is just Bottom because of the draw offsets)
+                if (row < rows - 1) neighbours.Add(_tiles[row + 1, column]);
+            }
+            else
+            {
+                // Top-Left (which is just Top because of the offsets)
+                if (row > 0) neighbours.Add(_tiles[row - 1, column]);
+
+                // Top-Right
+                if (row > 0 && column < _tiles.GetLength(1) - 1) neighbours.Add(_tiles[row - 1, column + 1]);
+
+                // Bottom-Left (which is just Bottom because of the offsets)
+                if (row < rows - 1) neighbours.Add(_tiles[row + 1, column]);
+
+                // Bottom-Right
+                if (row < rows - 1 && column < _tiles.GetLength(1) - 1) neighbours.Add(_tiles[row + 1, column + 1]);
+            }
+
+            return neighbours;
+        }
+
         public IsoBlockyTile GetTileFromPosition(Vector2 position)
         {
             var height = _tiles.GetLength(0);
@@ -219,12 +275,11 @@ namespace IsoBlockEditor
     /// A single "tile" in the blocky mappy. It is isometric in shape
     /// so has a diamond-shaped top surface for selecting/highlighting
     /// etc. 
+    /// This WAS a struct, but I changed it to a class because it was
+    /// more useful to treat it as a reference type. 
     /// </summary>
     public class IsoBlockyTile
     {
-        // This WAS a struct, but I changed it to a class because it was
-        // more useful to treat it as a reference type. 
-
         public const int TEXTURE_WIDTH = 50;
         public const int TEXTURE_HALF_WIDTH = 25;
         public const int TEXTURE_HEIGHT = 50;
@@ -233,28 +288,32 @@ namespace IsoBlockEditor
         public const int TOP_SURFACE_HEIGHT = 12;
         public const int ISO_HORIZONTAL_OFFSET = 21;
 
+        public (int row, int column) Index;
         public int Id;
         public bool IsActive;
-        public bool IsHighlighted;
         public bool IsDeadTile;
         public Texture2D Texture;
         public Vector2 Position;
         public Rectangle Rectangle;
         (Triangle, Triangle) TopSurface;
 
+        public int G;
+        public int H;
+        public int F => G + H;
+
         public IsoBlockyTile(
+            (int row, int column) index,
             int id,
             Vector2 position,
             Texture2D texture = null,
             bool isActive = false,
-            bool isHighlighted = false,
             bool isDeadTile = false)
         {
+            Index = index;
             Id = id;
             Position = position;
             Texture = texture;
             IsActive = isActive;
-            IsHighlighted = isHighlighted;
             IsDeadTile = isDeadTile;
 
             // RECTANGLE:
