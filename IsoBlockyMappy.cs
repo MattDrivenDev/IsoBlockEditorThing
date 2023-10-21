@@ -18,6 +18,7 @@ namespace IsoBlockEditor
         
         public IsoBlockyTile HighlightedTile;
         public IsoBlockyTile SelectedTile;
+        public List<IsoBlockyTile> Path;
         public bool DrawPlayArea = false;
 
         public IsoBlockyMappy(ContentManager content, Camera camera, Rectangle playArea)
@@ -117,14 +118,6 @@ namespace IsoBlockEditor
                         {
                             _tiles[i, j].IsActive = true;
                             _tiles[i, j].Texture = _currentTexture;
-
-
-                            var neighbours = GetNeighbouringTiles(_tiles[i, j]);
-                            foreach (var neighbour in neighbours)
-                            {
-                                neighbour.IsActive = true;
-                                neighbour.Texture = _currentTexture;
-                            }
                         }
                     }
                 }
@@ -162,6 +155,11 @@ namespace IsoBlockEditor
                         else
                         {
                             spriteBatch.Draw(_tiles[i, j].Texture, _tiles[i, j].Rectangle, Color.White);
+                        }
+
+                        if (Path != null && Path.Contains(_tiles[i, j]))
+                        {
+                            spriteBatch.Draw(_tiles[i, j].Texture, _tiles[i, j].Rectangle, Color.Aqua);
                         }
                     }
                     else
@@ -269,6 +267,12 @@ namespace IsoBlockEditor
 
             return null;
         }
+
+        public void MapPath(IsoBlockyTile start)
+        {
+            var pathfinder = new PathFinder(this);
+            Path = pathfinder.FindPath(start, SelectedTile);
+        }
     }
 
     /// <summary>
@@ -297,6 +301,7 @@ namespace IsoBlockEditor
         public Rectangle Rectangle;
         (Triangle, Triangle) TopSurface;
 
+        public IsoBlockyTile Parent;
         public int G;
         public int H;
         public int F => G + H;

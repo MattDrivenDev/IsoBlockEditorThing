@@ -67,6 +67,8 @@ namespace IsoBlockEditor
         {
             if (_map.SelectedTile != null && _currentTile != _map.SelectedTile)
             {
+                _map.MapPath(_currentTile);
+
                 // Move to the selected tile!
                 _currentTile = _map.SelectedTile;
                 _currentAnimation = _walk;
