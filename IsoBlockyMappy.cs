@@ -18,13 +18,11 @@ namespace IsoBlockEditor
         
         public IsoBlockyTile HighlightedTile;
         public IsoBlockyTile SelectedTile;
-        public List<IsoBlockyTile> Path;
         public bool DrawPlayArea = false;
 
         public IsoBlockyMappy(ContentManager content, Camera camera, Rectangle playArea)
         {
             _landTexture = content.Load<Texture2D>("blocks_50x50/isometric_pixel_0014");
-            //_waterTexture = content.Load<Texture2D>("blocks_50x50/isometric_pixel_0064");
             _currentTexture = _landTexture;
             _camera = camera;
             _playArea = playArea;
@@ -68,12 +66,6 @@ namespace IsoBlockEditor
             var inverse = _camera.ScreenToWorld();
             mousePosition = Vector2.Transform(mousePosition, inverse);
             HighlightedTile = null;
-
-            //if (ms.ScrollWheelValue > _previousMouseState.ScrollWheelValue
-            //    || ms.ScrollWheelValue < _previousMouseState.ScrollWheelValue)
-            //{
-            //    _currentTexture = _currentTexture == _landTexture ? _waterTexture : _landTexture;
-            //}
 
             // Get the tile that the mouse is currently over
             var height = _tiles.GetLength(0);
@@ -155,11 +147,6 @@ namespace IsoBlockEditor
                         else
                         {
                             spriteBatch.Draw(_tiles[i, j].Texture, _tiles[i, j].Rectangle, Color.White);
-                        }
-
-                        if (Path != null && Path.Contains(_tiles[i, j]))
-                        {
-                            spriteBatch.Draw(_tiles[i, j].Texture, _tiles[i, j].Rectangle, Color.Aqua);
                         }
                     }
                     else
@@ -266,12 +253,6 @@ namespace IsoBlockEditor
             }
 
             return null;
-        }
-
-        public void MapPath(IsoBlockyTile start)
-        {
-            var pathfinder = new PathFinder(this);
-            Path = pathfinder.FindPath(start, SelectedTile);
         }
     }
 

@@ -2,6 +2,8 @@
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace IsoBlockEditor
 {
@@ -21,6 +23,7 @@ namespace IsoBlockEditor
         const int FRAME_COUNT_CROUCH = 1;
         const int FIRST_FRAME_SNEAK = 18;
         const int FRAME_COUNT_SNEAK = 6;
+        const float SPEED = 50f;
 
         float _direction;
         Vector2 _position;
@@ -35,10 +38,14 @@ namespace IsoBlockEditor
         Animation _currentAnimation;
         IsoBlockyMappy _map;
         IsoBlockyTile _currentTile;
+        IsoBlockyTile _destinationTile;
+        PathFinder _pathfinder;
+        List<IsoBlockyTile> _currentPath;
 
         public Dino(ContentManager content, IsoBlockyMappy map, string spritesheet, Vector2 position)
         {
             _map = map;
+            _pathfinder= new PathFinder(map);
             _spritesheet = content.Load<Texture2D>(spritesheet);
             _shadow = content.Load<Texture2D>("dinos/shadow");
             _position = position;
@@ -65,20 +72,35 @@ namespace IsoBlockEditor
 
         public void Update(GameTime gameTime)
         {
-            if (_map.SelectedTile != null && _currentTile != _map.SelectedTile)
+            // Update the destination and path if the selected tile has changed.
+            if (_map.SelectedTile != null && _map.SelectedTile != _destinationTile)
             {
-                _map.MapPath(_currentTile);
-
-                // Move to the selected tile!
-                _currentTile = _map.SelectedTile;
-                _currentAnimation = _walk;
-                _direction = _currentTile.Position.X - _position.X;
+                _destinationTile = _map.SelectedTile;
+                _currentPath = _pathfinder.FindPath(_currentTile, _destinationTile);
             }
 
-            if (_position != _currentTile.Position)
+            if (_currentPath != null && _currentPath.Any())
             {
-                // When you're at the selected tile, move into the centre of the top surface
-                _position = _currentTile.Position;
+                _currentAnimation = _walk;
+                var nextTile = _currentPath[0];
+                var nextPosition = nextTile.Position;
+                var distance = Vector2.Distance(_position, nextPosition);
+                if (distance < 1)
+                {
+                    _currentPath.RemoveAt(0);
+                    _currentTile = nextTile;
+                }
+                else
+                {
+                    var direction = nextPosition - _position;
+                    direction.Normalize();
+                    _direction = direction.X;
+                    _position += direction * SPEED * (float)gameTime.ElapsedGameTime.TotalSeconds;
+                }
+            }
+            else
+            {
+                _currentAnimation = _idle;
             }
 
             _currentAnimation.Update(gameTime);
