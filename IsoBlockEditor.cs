@@ -16,12 +16,14 @@ namespace IsoBlockEditor
         IsoBlockyMappy _map;
         Yellow _yellow;
         TextureWindow _textureWindow;
+        Texture2D _uiTexture;
+        Rectangle _cursorSource;
 
         public IsoBlockEditor()
         {
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
-            IsMouseVisible = true;
+            IsMouseVisible = false;
         }
 
         protected override void Initialize()
@@ -39,7 +41,9 @@ namespace IsoBlockEditor
             _camera = new Camera(GraphicsDevice.Viewport, new Vector2(100, 100), 1.5f);
             _map = new IsoBlockyMappy(Content, _camera, new Rectangle(0, 0, 400, 300));
             _textureWindow = new TextureWindow(Content, new Point(16, 16), _map);
-
+            _uiTexture = Content.Load<Texture2D>("ui/transparent");
+            _cursorSource = new Rectangle(27 * 18, 19 * 18, 16, 16);
+            
             // We'll get a crash if we don't have a spawn point - good.
             var spawn = _map.ActiveTiles.Single();
             var spawnpoint = spawn.Position;
@@ -92,11 +96,14 @@ namespace IsoBlockEditor
 
         private void DrawUI(GameTime gameTime)
         {
+            var cursorDestination = new Rectangle(_previousMouseState.Position, new Point(24, 24));
+
             _spriteBatch.Begin(
                 sortMode: SpriteSortMode.Deferred,
                 rasterizerState: RasterizerState.CullCounterClockwise,
                 samplerState: SamplerState.PointClamp);
             _textureWindow.Draw(_spriteBatch);
+            _spriteBatch.Draw(_uiTexture, cursorDestination, _cursorSource, Color.Gray);
             _spriteBatch.End();
         }
     }
