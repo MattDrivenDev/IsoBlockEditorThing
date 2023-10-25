@@ -12,10 +12,10 @@ namespace IsoBlockEditor
         MouseState _previousMouseState;
         KeyboardState _previousKeyboardState;
         Texture2D _landTexture;
-        Texture2D _currentTexture;
         Camera _camera;
         Rectangle _playArea;
-        
+
+        public Texture2D CurrentTexture;
         public IsoBlockyTile HighlightedTile;
         public IsoBlockyTile SelectedTile;
         public bool DrawPlayArea = false;
@@ -23,7 +23,7 @@ namespace IsoBlockEditor
         public IsoBlockyMappy(ContentManager content, Camera camera, Rectangle playArea)
         {
             _landTexture = content.Load<Texture2D>("blocks_50x50/isometric_pixel_0014");
-            _currentTexture = _landTexture;
+            CurrentTexture = _landTexture;
             _camera = camera;
             _playArea = playArea;
 
@@ -46,7 +46,7 @@ namespace IsoBlockEditor
                     if (i == halfHeight && j == halfWidth)
                     {
                         _tiles[i, j].IsActive = true;
-                        _tiles[i, j].Texture = _currentTexture;
+                        _tiles[i, j].Texture = CurrentTexture;
                     }
 
                     // Even rows are aesthetically displeasing when they extend
@@ -109,7 +109,7 @@ namespace IsoBlockEditor
                             && Mouse.GetState().LeftButton == ButtonState.Released)
                         {
                             _tiles[i, j].IsActive = true;
-                            _tiles[i, j].Texture = _currentTexture;
+                            _tiles[i, j].Texture = CurrentTexture;
                         }
                     }
                 }
@@ -153,7 +153,7 @@ namespace IsoBlockEditor
                     {
                         if (_tiles[i, j] == HighlightedTile)
                         {
-                            spriteBatch.Draw(_currentTexture, _tiles[i, j].Rectangle, Color.White * 0.5f);
+                            spriteBatch.Draw(CurrentTexture, _tiles[i, j].Rectangle, Color.White * 0.5f);
                         }
                     }
                 }

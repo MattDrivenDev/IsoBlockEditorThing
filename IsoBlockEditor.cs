@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System.Linq;
@@ -13,7 +14,8 @@ namespace IsoBlockEditor
         KeyboardState _previousKeyboardState;
         MouseState _previousMouseState;
         IsoBlockyMappy _map;
-        Red _red;
+        Yellow _yellow;
+        TextureWindow _textureWindow;
 
         public IsoBlockEditor()
         {
@@ -36,11 +38,12 @@ namespace IsoBlockEditor
             _spriteBatch = new SpriteBatch(GraphicsDevice);
             _camera = new Camera(GraphicsDevice.Viewport, new Vector2(100, 100), 1.5f);
             _map = new IsoBlockyMappy(Content, _camera, new Rectangle(0, 0, 400, 300));
+            _textureWindow = new TextureWindow(Content, new Point(16, 16), _map);
 
             // We'll get a crash if we don't have a spawn point - good.
             var spawn = _map.ActiveTiles.Single();
             var spawnpoint = spawn.Position;
-            _red = new Red(Content, _map, spawnpoint);
+            _yellow = new Yellow(Content, _map, spawnpoint);
 
             // Focus the camera on the spawn point.
             _camera.Target = spawnpoint;
@@ -55,7 +58,8 @@ namespace IsoBlockEditor
 
             _camera.Update(gameTime);
             _map.Update(gameTime);
-            _red.Update(gameTime);
+            _yellow.Update(gameTime);
+            _textureWindow.Update(gameTime);
 
             base.Update(gameTime);
 
@@ -66,21 +70,34 @@ namespace IsoBlockEditor
         protected override void Draw(GameTime gameTime)
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
+            
+            DrawGameWorld(gameTime);
+            DrawUI(gameTime);
 
+            base.Draw(gameTime);
+        }
+
+        private void DrawGameWorld(GameTime gameTime)
+        {
             var transformation = _camera.WorldToScreen();
-
             _spriteBatch.Begin(
                 sortMode: SpriteSortMode.Deferred,
                 transformMatrix: transformation,
                 rasterizerState: RasterizerState.CullCounterClockwise,
                 samplerState: SamplerState.PointClamp);
-
             _map.Draw(_spriteBatch, gameTime);
-            _red.Draw(_spriteBatch, gameTime);
-            
+            _yellow.Draw(_spriteBatch, gameTime);
             _spriteBatch.End();
+        }
 
-            base.Draw(gameTime);
+        private void DrawUI(GameTime gameTime)
+        {
+            _spriteBatch.Begin(
+                sortMode: SpriteSortMode.Deferred,
+                rasterizerState: RasterizerState.CullCounterClockwise,
+                samplerState: SamplerState.PointClamp);
+            _textureWindow.Draw(_spriteBatch);
+            _spriteBatch.End();
         }
     }
 }
