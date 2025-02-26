@@ -1,10 +1,10 @@
 // IsoBlockEditorCpp.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
 #include <stdio.h>
-#include "SDL.h"
+#include <SDL3/SDL.h>
 
-static constexpr int SCREEN_WIDTH = 640;
-static constexpr int SCREEN_HEIGHT = 480;
+static constexpr int SCREEN_WIDTH = 800;
+static constexpr int SCREEN_HEIGHT = 600;
 
 int main(int argc, char* args[])
 {
@@ -16,9 +16,8 @@ int main(int argc, char* args[])
         return 1;
     }
 
-    window = SDL_CreateWindow("IsoBlockEditorThing", 
-        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 
-        SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("IsoBlockEditorThing",
+        SCREEN_WIDTH, SCREEN_HEIGHT, 0);
 
     if (window == NULL)
     {
@@ -26,7 +25,7 @@ int main(int argc, char* args[])
     }
 
     screen_surface = SDL_GetWindowSurface(window);
-    SDL_FillRect(screen_surface, NULL, SDL_MapRGB(screen_surface->format, 0xff, 0xff, 0xff));
+    SDL_FillSurfaceRect(screen_surface, NULL, SDL_MapSurfaceRGB(screen_surface, 0xc2, 0xc2, 0xc2));
     SDL_UpdateWindowSurface(window);
 
     SDL_Event e;
@@ -35,7 +34,7 @@ int main(int argc, char* args[])
     {
         while (SDL_PollEvent(&e))
         {
-            if (e.type == SDL_QUIT)
+            if (e.type == SDL_EVENT_QUIT)
             {
                 quit = true;
             }
