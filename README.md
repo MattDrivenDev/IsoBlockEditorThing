@@ -1,8 +1,6 @@
 # Iso Block Editor Thing
 
-This time in C++!
-
-Using 
+This time in C++ using SDL2.
 
 ## Vector2
 I'm just going to use an `array<float, 2>` to represent the vectors and implement the small vector math operations I require myself. It's lightweight and simple to think about. By convention `[0]` will represent the `x` and `y` will be represented by `[1]`.
