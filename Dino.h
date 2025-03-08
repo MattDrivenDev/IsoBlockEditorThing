@@ -8,13 +8,16 @@ class Dino
 private:
 	float direction = 1;
 	std::array<float, 2> position = { 1.0f, 1.0f };
-	Animation anim_idle;
-	Animation anim_walk;
-	Animation anim_kick;
-	Animation anim_hurt;
-	Animation anim_crouch;
-	Animation anim_sneak;
+	SDL_Texture* spritesheet;
+	Animation* anim_idle;
+	Animation* anim_walk;
+	Animation* anim_kick;
+	Animation* anim_hurt;
+	Animation* anim_crouch;
+	Animation* anim_sneak;
 	Animation* anim_current;
+	SDL_Renderer* renderer;
+	SDL_FRect* frect;
 
 protected:
 	static constexpr int FRAME_WIDTH = 24;
@@ -32,49 +35,43 @@ protected:
 	static constexpr int ANIM_SNEAK_FRAME_START = 18;
 	static constexpr int ANIM_SNEAK_FRAME_COUNT = 6;
 	static constexpr float SPEED = 50.0f;
+	static SDL_Texture* load_spritesheet(SDL_Renderer* renderer, const char* filename);
 
 public:
-	Dino(std::array<float, 2> position) 
-		:position(position),
-		anim_idle(ANIM_IDLE_FRAME_COUNT, true),
-		anim_walk(ANIM_WALK_FRAME_COUNT, true),
-		anim_kick(ANIM_KICK_FRAME_COUNT, true),
-		anim_hurt(ANIM_HURT_FRAME_COUNT, true),
-		anim_crouch(ANIM_CROUCH_FRAME_COUNT, true),
-		anim_sneak(ANIM_SNEAK_FRAME_COUNT, true),
-		anim_current(& anim_idle) {}
-	virtual void update(float &deltatime);
+	Dino(std::array<float, 2> position, SDL_Renderer* renderer, SDL_Texture* spritesheet);
+	~Dino();
+	virtual void update(double&deltatime);
 	virtual void render();
 };
 
 class RedDino : public Dino
 {
 public:
-	RedDino(std::array<float, 2> position) :Dino(position) {}
-	void update(float& deltatime) override;
-	void render() override;
+	RedDino(std::array<float, 2> position, SDL_Renderer* renderer)
+		:Dino(position, renderer, load_spritesheet(renderer, "resource/dinos/red.png")) { }
+	void update(double& deltatime) override;
 };
 
 class GreenDino : public Dino
 {
 public:
-	GreenDino(std::array<float, 2> position) :Dino(position) {}
-	void update(float& deltatime) override;
-	void render() override;
+	GreenDino(std::array<float, 2> position, SDL_Renderer* renderer)
+		:Dino(position, renderer, load_spritesheet(renderer, "resource/dinos/green.png")) { }
+	void update(double& deltatime) override;
 };
 
 class BlueDino : public Dino
 {
 public:
-	BlueDino(std::array<float, 2> position) :Dino(position) {}
-	void update(float& deltatime) override;
-	void render() override;
+	BlueDino(std::array<float, 2> position, SDL_Renderer* renderer)
+		:Dino(position, renderer, load_spritesheet(renderer, "resource/dinos/blue.png")) { }
+	void update(double& deltatime) override;
 };
 
 class YellowDino : public Dino
 {
 public:
-	YellowDino(std::array<float, 2> position) :Dino(position) {}
-	void update(float& deltatime) override;
-	void render() override;
+	YellowDino(std::array<float, 2> position, SDL_Renderer* renderer)
+		:Dino(position, renderer, load_spritesheet(renderer, "resource/dinos/yellow.png")) { }
+	void update(double& deltatime) override;
 };

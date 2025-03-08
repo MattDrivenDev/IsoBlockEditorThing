@@ -57,6 +57,5 @@ const bool IsoTile::top_surface_contains_v2(const std::array<float, 2>& vec2)
 
 void IsoTile::render(SDL_Renderer* renderer)
 {
-
     SDL_RenderTexture(renderer, texture, nullptr, &rect);
 }

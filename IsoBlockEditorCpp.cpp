@@ -4,6 +4,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 #include "IsoTileMap.h"
+#include "Dino.h"
 
 static constexpr int SCREEN_WIDTH = 800;
 static constexpr int SCREEN_HEIGHT = 600;
@@ -12,9 +13,10 @@ SDL_Window* window = nullptr;
 SDL_Renderer* window_renderer = nullptr;
 SDL_Texture* texture = nullptr;
 IsoTile* test_tile = nullptr;
+Dino* red = nullptr;
 
 void render();
-void update();
+void update(double& deltatime);
 
 int main(int argc, char* args[])
 {
@@ -44,11 +46,20 @@ int main(int argc, char* args[])
     }
 
     test_tile = new IsoTile(0, 0, 1, { SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, texture, true, false);
+    red = new RedDino({ SCREEN_WIDTH / 2, ((SCREEN_HEIGHT / 2) - 16) }, window_renderer);;
+
+    uint64_t lasttime = SDL_GetPerformanceCounter();
+    double deltatime = 0.0;
 
     SDL_Event e;
     bool quit = false;
     while (quit == false)
     {
+        uint64_t currenttime = SDL_GetPerformanceCounter();
+        uint64_t frequency = SDL_GetPerformanceFrequency();
+        deltatime = static_cast<double>(currenttime - lasttime) / static_cast<double>(frequency);
+        lasttime = currenttime;
+
         while (SDL_PollEvent(&e))
         {
             if (e.type == SDL_EVENT_QUIT)
@@ -57,7 +68,7 @@ int main(int argc, char* args[])
             }
         }
 
-        update();
+        update(deltatime);
         render();
     }
 
@@ -70,13 +81,14 @@ int main(int argc, char* args[])
     return 0;
 }
 
-void update()
+void update(double& deltatime)
 {
-
+    red->update(deltatime);
 }
 
 void render()
 {
     test_tile->render(window_renderer);
+    red->render();
     SDL_RenderPresent(window_renderer);
 }
